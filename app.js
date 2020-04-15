@@ -7,8 +7,11 @@ const morgan = require('morgan');
 const cors = require('cors')
 const app = express();
 require('./db')
-const upload = require('./uploadAttachment')
-const fileModel = require('./downloadAttachment')
+const {
+
+    uploadFileFun
+} = require('./Gridfs')
+const createFileModel = require('./Gridfs/createFileModel')
 app.use(cors());
 app.use(bodyParser.json({
     limit: '50mb'
@@ -22,29 +25,37 @@ app.use(morgan('dev'));
 // refer to routes
 
 app.post('/api/upload', async function (req, res) {
-    let uploadPromise = upload()
+    let uploadFilePromise = uploadFileFun()
     try {
-        await uploadPromise(req, res)
+        await uploadFilePromise(req, res)
         res.status(200).json({
             message: "upload successfully"
         })
-    } catch (err){
+    } catch (err) {
         throw err
     }
 
 })
-app.get('/api/upload/:filename', function (req, res) {
-    let Attachment = fileModel()
-    console.log(req.params.filename)
-    Attachment.findOne({
-        filename: req.params.filename
-    }, (error, attachment) => {
-        let readstream = attachment.read({
-            filename: attachment.filename,
+app.get('/api/upload', async (req, res) => {
+    let {
+        filename
+    } = req.query
+    let FileModel = createFileModel();
+    let file = await FileModel.findOne({
+        filename
+    })
+    if (file) {
+        let readstream = file.read({
+            filename: file.filename,
         });
-        res.set('Content-Type', attachment.contentType)
+        res.set('Content-Type', file.contentType)
         readstream.pipe(res);
-    });
+    } else {
+        res.status(200).json({
+            file: null
+        })
+    }
+
 })
 // error handler for not existed api
 app.use(function (req, res, next) {

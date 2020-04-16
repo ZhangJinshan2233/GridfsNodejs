@@ -6,6 +6,7 @@ const multer=require('multer')
 module.exports= ()=>{
     let  photos = createBucket({
         bucketName: 'photos',
+        chunkSizeBytes: 1024*1024
     });
     var uploadFile = multer({
         storage:photos
